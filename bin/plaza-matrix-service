@@ -19,7 +19,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')
 
-    print("Connecting as: {}".format(USER))
+    logging.info("Connecting as: {}".format(USER))
     matrix = PlazaBot(USER, PASSWORD, MATRIX_INSTANCE)
     service = MatrixService(matrix, sys.argv[1])
     service.run()
