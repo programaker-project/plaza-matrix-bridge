@@ -2,14 +2,10 @@
 
 from plaza_matrix_service import MatrixService
 from plaza_matrix_service import PlazaBot
+from plaza_matrix_service import config
 import logging
 import asyncio
 import sys
-
-MATRIX_INSTANCE = "https://matrix.codigoparallevar.com"
-USER = "plaza-bot"
-PASSWORD = "<nocommit>"  #NOCOMMIT
-
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -19,7 +15,12 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')
 
-    logging.info("Connecting as: {}".format(USER))
-    matrix = PlazaBot(USER, PASSWORD, MATRIX_INSTANCE)
-    service = MatrixService(matrix, sys.argv[1])
+    matrix_instance = config.get_matrix_instance()
+    user = config.get_user()
+    password = config.get_password()
+    bridge_endpoint = config.get_bridge_endpoint()
+
+    logging.info("Connecting as: {}".format(user))
+    matrix = PlazaBot(user, password, matrix_instance)
+    service = MatrixService(matrix, bridge_endpoint)
     service.run()

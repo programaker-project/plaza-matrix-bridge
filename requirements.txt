@@ -3,3 +3,6 @@ plaza-service
 
 # Matrix
 matrix_client
+
+# XDG
+xdg
