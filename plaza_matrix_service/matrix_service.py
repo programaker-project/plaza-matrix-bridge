@@ -51,12 +51,8 @@ class MatrixService(PlazaService):
 
             self.members[member.user_id].append(room)
 
-        print(self.members)
-
     def on_new_message(self, room, event):
         user = event['sender']
-        print("R", room)
-        print("E", event)
         if not self.storage.is_matrix_user_registered(user):
             self._on_non_registered_event(user, room, event)
         else:
@@ -65,6 +61,9 @@ class MatrixService(PlazaService):
             self.message_received_event.clear()
 
     def _on_non_registered_event(self, user, room, event):
+        if not 'body' in event['content']:
+            return
+
         msg = event['content']['body'].strip()
         prefix = '!register '
         if msg.startswith(prefix):
@@ -74,19 +73,25 @@ class MatrixService(PlazaService):
 
     async def get_next_message(self, extra_data):
         logging.info("Waiting...")
-        await self.message_received_event.wait()
-        logging.info("New message from {}".format(
-            self.last_message[0].display_name))
-        return self.last_message[1]['content']['body']
+        while True:
+            await self.message_received_event.wait()
+            logging.info("New message from {}".format(
+                self.last_message[0].display_name))
+            if not 'body' in self.last_message[1]['content']:
+                logging.info("Ignoring status update")
+                continue
+
+            return self.last_message[1]['content']['body']
 
     async def handle_data_callback(self, callback_name, extra_data):
         logging.info("GET {} # {}".format(
             callback_name, extra_data.user_id))
-        return {
-            "1": {"name": "one"},
-            "2": {"name": "two"},
-            "3": {"name": "three"},
-        }
+        results = {}
+        for user in self.storage.get_matrix_users(extra_data.user_id):
+            for room in self.members[user]:
+                results[room.room_id] = {"name": room.display_name}
+
+        return results
 
     async def send_message(self, extra_data, message):
         self.bot.send(message)

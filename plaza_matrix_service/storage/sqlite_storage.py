@@ -140,6 +140,22 @@ class SqliteStorage:
             c.close()
             db.commit()
 
+    def get_matrix_users(self, plaza_user):
+        with self._open_db() as db:
+            c = db.cursor()
+            plaza_id = self._get_or_add_plaza_user(c, plaza_user)
+            c.execute('''
+            SELECT matrix_user_id
+            FROM MATRIX_USERS m
+            JOIN PLAZA_USERS_IN_MATRIX pim
+            ON m.id=pim.matrix_id
+            WHERE pim.plaza_id=?
+            ;
+            ''', (plaza_id,))
+            results = c.fetchall()
+            c.close()
+            return [row[0] for row in results]
+
 
 def get_default():
     return SqliteStorage(DEFAULT_PATH)
