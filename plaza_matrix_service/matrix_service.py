@@ -61,7 +61,7 @@ class MatrixService(PlazaService):
             self.message_received_event.clear()
 
     def _on_non_registered_event(self, user, room, event):
-        if not 'body' in event['content']:
+        if 'body' not in event['content']:
             return
 
         msg = event['content']['body'].strip()
@@ -77,7 +77,7 @@ class MatrixService(PlazaService):
             await self.message_received_event.wait()
             logging.info("New message from {}".format(
                 self.last_message[0].display_name))
-            if not 'body' in self.last_message[1]['content']:
+            if 'body' not in self.last_message[1]['content']:
                 logging.info("Ignoring status update")
                 continue
 
@@ -93,8 +93,8 @@ class MatrixService(PlazaService):
 
         return results
 
-    async def send_message(self, extra_data, message):
-        self.bot.send(message)
+    async def send_message(self, extra_data, room_id, message):
+        self.bot.send(room_id, message)
 
     async def handle_call(self, function_name, arguments, extra_data):
         logging.info("{}({}) # {}".format(
