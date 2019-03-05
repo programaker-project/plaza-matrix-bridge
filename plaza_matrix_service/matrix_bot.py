@@ -1,8 +1,6 @@
 import logging
 from matrix_client.client import MatrixClient
 
-TEST_ROOM = "!oSGYXfDYQOxgBwGeen:matrix.codigoparallevar.com"
-
 
 class PlazaBot:
 
@@ -12,21 +10,24 @@ class PlazaBot:
         self.token = self.client.login(username=user, password=password)
         self.rooms = {}
 
+        self.handler = None
         self.client.add_invite_listener(self.on_invite)
+
+    def start(self):
         for room_id in self.client.get_rooms():
             self.join_room(room_id)
 
         self.client.start_listener_thread(exception_handler=self.on_exception)
 
-    def send(self, message):
-        self.rooms[TEST_ROOM].send_text(message)
+    def send(self, room_id, message):
+        self.rooms[room_id].send_text(message)
 
     def message(self, room, event):
         logging.info("Room[{}] Event[{}]".format(room, event))
-        if self.on_new_message is None:
+        if self.handler is None:
             return
 
-        self.on_new_message(room, event)
+        self.handler.on_new_message(room, event)
 
     def on_exception(self, exception):
         logging.error(repr(exception))
@@ -38,3 +39,7 @@ class PlazaBot:
         room = self.client.join_room(room_id)
         room.add_listener(self.message)
         self.rooms[room_id] = room
+
+        if self.handler is not None:
+            self.handler.joined_room(room)
+            self.handler.set_room_members(room, room.get_joined_members())

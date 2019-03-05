@@ -3,15 +3,10 @@
 from plaza_matrix_service import MatrixService
 from plaza_matrix_service import PlazaBot
 from plaza_matrix_service import config
+from plaza_matrix_service.storage import sqlite_storage
 import logging
-import asyncio
-import sys
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("{} <service-operation-url>".format(sys.argv[0]))
-        exit(0)
-
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')
 
@@ -20,7 +15,7 @@ if __name__ == "__main__":
     password = config.get_password()
     bridge_endpoint = config.get_bridge_endpoint()
 
-    logging.info("Connecting as: {}".format(user))
     matrix = PlazaBot(user, password, matrix_instance)
-    service = MatrixService(matrix, bridge_endpoint)
+    service = MatrixService(
+        matrix, sqlite_storage.get_default(), bridge_endpoint)
     service.run()

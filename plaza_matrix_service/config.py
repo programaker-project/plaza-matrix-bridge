@@ -12,6 +12,7 @@ global directory, config_file
 directory = os.path.join(XDG_CONFIG_HOME, 'plaza', 'bridges', 'matrix')
 config_file = os.path.join(directory, 'config.json')
 
+
 def _get_config():
     if not os.path.exists(config_file):
         return {}
@@ -54,6 +55,7 @@ def get_password():
             raise Exception('No password introduced')
         _save_config(config)
     return config[MATRIX_PASSWORD_INDEX]
+
 
 def get_bridge_endpoint():
 
