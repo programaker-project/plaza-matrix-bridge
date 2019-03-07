@@ -56,6 +56,11 @@ class MatrixService(PlazaService):
         if not self.storage.is_matrix_user_registered(user):
             self._on_non_registered_event(user, room, event)
         else:
+            PlazaService.emit_event_sync(
+                self,
+                to_user=self.storage.get_plaza_user_from_matrix(
+                    user),
+                event=event)
             self.last_message = (room, event)
             self.message_received_event.set()
             self.message_received_event.clear()

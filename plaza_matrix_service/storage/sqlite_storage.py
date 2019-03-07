@@ -71,19 +71,38 @@ class SqliteStorage:
     def is_matrix_user_registered(self, user_id):
         with self._open_db() as db:
             c = db.cursor()
-            result = self._is_matrix_user_registered(c, user_id)
+            c.execute('''
+            SELECT count(1)
+            FROM MATRIX_USERS
+            WHERE matrix_user_id=?
+            ;
+            ''', (user_id,))
+            result = c.fetchone()[0]
+
             c.close()
 
             return result > 0
 
-    def _is_matrix_user_registered(self, cursor, user_id):
-        cursor.execute('''
-        SELECT count(1)
-        FROM MATRIX_USERS
-        WHERE matrix_user_id=?
-        ;
-        ''', (user_id,))
-        return cursor.fetchone()[0]
+    def get_plaza_user_from_matrix(self, user_id):
+        with self._open_db() as db:
+            c = db.cursor()
+            c.execute('''
+            SELECT plaza_user_id
+            FROM PLAZA_USERS as p
+            JOIN PLAZA_USERS_IN_MATRIX as puim
+            ON puim.plaza_id = p.id
+            JOIN MATRIX_USERS as m
+            ON puim.matrix_id = m.id
+            WHERE m.matrix_user_id=?
+            ;
+            ''', (user_id,))
+            results = c.fetchall()
+
+            c.close()
+            assert 0 <= len(results) <= 1
+            if len(results) == 0:
+                raise Exception('User (matrix:{}) not found'.format(user_id))
+            return results[0][0]
 
     def _get_or_add_matrix_user(self, cursor, matrix_user):
         cursor.execute('''
