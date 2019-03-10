@@ -6,7 +6,7 @@ from plaza_service import (
     ServiceConfiguration,
     MessageBasedServiceRegistration,
     ServiceBlock,
-    BlockArgument, DynamicBlockArgument,
+    BlockArgument, DynamicBlockArgument, VariableBlockArgument,
     BlockType,
 )
 
@@ -60,6 +60,7 @@ class MatrixService(PlazaService):
                 self,
                 to_user=self.storage.get_plaza_user_from_matrix(
                     user),
+                key="on_new_message",
                 event=event)
             self.last_message = (room, event)
             self.message_received_event.set()
@@ -74,7 +75,7 @@ class MatrixService(PlazaService):
         if msg.startswith(prefix):
             register_id = msg[len(prefix):]
             self.storage.register_user(user, register_id)
-            self.bot.send(room.room_id, "Congrats, you're registered!")
+            self.bot.send(room.room_id, "Congrats, you're registered now!")
 
     async def get_next_message(self, extra_data):
         logging.info("Waiting...")
@@ -129,6 +130,16 @@ class MatrixService(PlazaService):
                         BlockArgument(str, "Hello"),
                     ],
                     block_type=BlockType.OPERATION,
+                    block_result_type=None,
+                ),
+                ServiceBlock(
+                    id="on_new_message",
+                    function_name="on_new_message",
+                    message="When received any message. Set %1",
+                    arguments=[
+                        VariableBlockArgument(),
+                    ],
+                    block_type=BlockType.TRIGGER,
                     block_result_type=None,
                 ),
             ],
