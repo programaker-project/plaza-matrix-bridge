@@ -5,9 +5,9 @@ from plaza_service import (
     PlazaService,
     ServiceConfiguration,
     MessageBasedServiceRegistration,
-    ServiceBlock,
+    ServiceBlock, ServiceTriggerBlock,
     BlockArgument, DynamicBlockArgument, VariableBlockArgument,
-    BlockType,
+    BlockType, BlockContext,
 )
 
 BOT_ADDRESS = 'plaza@codigoparallevar.com'
@@ -61,6 +61,7 @@ class MatrixService(PlazaService):
                 to_user=self.storage.get_plaza_user_from_matrix(
                     user),
                 key="on_new_message",
+                content=event['content']['body'],
                 event=event)
             self.last_message = (room, event)
             self.message_received_event.set()
@@ -132,15 +133,14 @@ class MatrixService(PlazaService):
                     block_type=BlockType.OPERATION,
                     block_result_type=None,
                 ),
-                ServiceBlock(
+                ServiceTriggerBlock(
                     id="on_new_message",
                     function_name="on_new_message",
                     message="When received any message. Set %1",
                     arguments=[
                         VariableBlockArgument(),
                     ],
-                    block_type=BlockType.TRIGGER,
-                    block_result_type=None,
+                    save_to=BlockContext.ARGUMENTS[0],
                 ),
             ],
         )
