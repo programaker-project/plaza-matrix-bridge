@@ -37,6 +37,7 @@ class PlazaBot:
         logging.error(repr(exception))
 
     def on_invite(self, room_id, state):
+        logging.info("INVITED to room_id={}".format(room_id))
         self.join_room(room_id)
 
     def join_room(self, room_id):
