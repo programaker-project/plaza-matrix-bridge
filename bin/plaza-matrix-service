@@ -1,21 +1,141 @@
 #!/usr/bin/env python3
 
-from plaza_matrix_service import MatrixService
 from plaza_matrix_service import PlazaBot
 from plaza_matrix_service import config
 from plaza_matrix_service.storage import sqlite_storage
 import logging
+import sys
 
+from plaza_bridge import (
+    PlazaBridge,
+    MessageBasedServiceRegistration,
+    BlockContext,
+    BlockArgument,
+    CallbackBlockArgument,
+    VariableBlockArgument,
+)
+
+BOT_ADDRESS = config.get_matrix_bot_address()
+
+
+class Registerer(MessageBasedServiceRegistration):
+    def __init__(self, *args, **kwargs):
+        MessageBasedServiceRegistration.__init__(self, *args, **kwargs)
+
+    def get_call_to_action_text(self, extra_data):
+        if not extra_data:
+            return 'Just greet {bot_addr}'.format(bot_addr=BOT_ADDRESS)
+        return ('Send the following to {bot_addr}<console>!register {user_id}</console>'
+                .format(bot_addr=BOT_ADDRESS, user_id=extra_data.user_id))
+
+# Global objects
+STORAGE = sqlite_storage.get_default()
+
+MATRIX_INSTANCE = config.get_matrix_instance()
+MATRIX_USER = config.get_user()
+MATRIX_PASSWORD = config.get_password()
+BRIDGE_ENDPOINT = config.get_bridge_endpoint()
+
+BOT = PlazaBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
+
+bridge = PlazaBridge(
+    name="Matrix.im",
+    is_public=True,
+    registerer=Registerer(),
+    events=['on_new_message'],
+    endpoint=BRIDGE_ENDPOINT,
+)
+
+# Events
+on_new_message_event = bridge.events.on_new_message
+on_new_message_event.add_trigger_block(
+    id="on_new_message",
+    message="When received any message. Set %1",
+    arguments=[VariableBlockArgument()],
+    save_to=BlockContext.ARGUMENTS[0],
+)
+on_new_message_event.add_trigger_block(
+    id="on_command",
+    message="When received %1",
+    arguments=[BlockArgument(str, "!start")],
+    expected_value=BlockContext.ARGUMENTS[0],
+)
+
+## Matrix bot handler functions
+ROOMS = {}
+MEMBERS = {}
+class BotHandler:
+    def __init__(self, bot):
+        self.bot = bot
+
+    def joined_room(self, room):
+        logging.info("JOINED room_id={room}".format(room=room.room_id))
+
+    def set_room_members(self, room, members):
+        ROOMS[room] = members
+        for member in members:
+            if member.user_id not in MEMBERS:
+                MEMBERS[member.user_id] = []
+
+            MEMBERS[member.user_id].append(room)
+
+    def on_new_message(self, room, event):
+        user = event['sender']
+        if not STORAGE.is_matrix_user_registered(user):
+            self._on_non_registered_event(user, room, event)
+        else:
+            on_new_message_event.send(
+                to_user=STORAGE.get_plaza_user_from_matrix(user),
+                content=event['content']['body'],
+                event=event,
+            )
+            self.last_message = (room, event)
+
+    def _on_non_registered_event(self, user, room, event):
+        if 'body' not in event['content']:
+            return
+
+        msg = event['content']['body'].strip()
+        prefix = '!register '
+        if msg.startswith(prefix):
+            register_id = msg[len(prefix):]
+            STORAGE.register_user(user, register_id)
+            BOT.send(room.room_id, "Congrats, you're registered now!")
+    
+BOT.handler = BotHandler(BOT)
+
+
+## Callbacks
+@bridge.callback
+def get_known_channels(extra_data):
+    logging.info("CALLBACK get_known_channels # user_id={}".format(extra_data.user_id))
+    results = {}
+    for user in STORAGE.get_matrix_users(extra_data.user_id):
+        for room in MEMBERS[user]:
+            results[room.room_id] = {"name": room.display_name}
+
+    return results
+
+## Operations
+@bridge.operation(
+    id="send_message",
+    message="On channel %1 say %2",
+    arguments=[
+        CallbackBlockArgument(str, get_known_channels),
+        BlockArgument(str, "Hello"),
+    ],
+)
+def send_message(room_id, message, extra_data):
+    logging.info("OPERATION send_message # room_id={}".format(room_id))
+    BOT.send(room_id, message)
+
+
+    
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')
 
-    matrix_instance = config.get_matrix_instance()
-    user = config.get_user()
-    password = config.get_password()
-    bridge_endpoint = config.get_bridge_endpoint()
-
-    matrix = PlazaBot(user, password, matrix_instance)
-    service = MatrixService(
-        matrix, sqlite_storage.get_default(), bridge_endpoint)
-    service.run()
+    logging.info("Starting matrix BOT")
+    BOT.start()
+    logging.info("Starting matrix bridge")
+    bridge.run()

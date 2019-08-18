@@ -11,7 +11,7 @@ setup(name='plaza-matrix-service',
       include_package_data=True,
       install_requires=[
           'matrix_client',
-          'plaza-service',
+          'plaza-bridge',
           'xdg',
       ],
       zip_safe=False)
