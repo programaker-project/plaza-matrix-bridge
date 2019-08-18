@@ -4,9 +4,17 @@ import os
 from xdg import XDG_CONFIG_HOME
 
 MATRIX_INSTANCE_INDEX = 'matrix_instance'
+MATRIX_BOT_ADDRESS_INDEX = 'matrix_bot_address'
 MATRIX_USER_INDEX = 'matrix_user'
 MATRIX_PASSWORD_INDEX = 'matrix_password'
 PLAZA_BRIDGE_ENDPOINT_INDEX = 'plaza_bridge_endpoint'
+
+MATRIX_INSTANCE_ENV = 'MATRIX_INSTANCE'
+MATRIX_BOT_ADDRESS_ENV = 'MATRIX_BOT_ADDRESS'
+MATRIX_USER_ENV = 'MATRIX_USER'
+MATRIX_PASSWORD_ENV = 'MATRIX_PASSWORD'
+PLAZA_BRIDGE_ENDPOINT_ENV = 'PLAZA_BRIDGE_ENDPOINT'
+
 
 global directory, config_file
 directory = os.path.join(XDG_CONFIG_HOME, 'plaza', 'bridges', 'matrix')
@@ -25,8 +33,12 @@ def _save_config(config):
     with open(config_file, 'wt') as f:
         return json.dump(config, f)
 
-
+    
 def get_matrix_instance():
+    env_val = os.getenv(MATRIX_INSTANCE_ENV, None)
+    if env_val is not None:
+        return env_val
+
     config = _get_config()
     if config.get(MATRIX_INSTANCE_INDEX, None) is None:
         config[MATRIX_INSTANCE_INDEX] = input(
@@ -37,7 +49,25 @@ def get_matrix_instance():
     return config[MATRIX_INSTANCE_INDEX]
 
 
+def get_matrix_bot_address():
+    env_val = os.getenv(MATRIX_BOT_ADDRESS_ENV, None)
+    if env_val is not None:
+        return env_val
+
+    config = _get_config()
+    if config.get(MATRIX_BOT_ADDRESS_INDEX, None) is None:
+        config[MATRIX_BOT_ADDRESS_INDEX] = input('Matrix bot address: ').strip()
+        if not config[MATRIX_BOT_ADDRESS_INDEX]:
+            raise Exception('No matrix bot address introduced')
+        _save_config(config)
+    return config[MATRIX_BOT_ADDRESS_INDEX]
+
+
 def get_user():
+    env_val = os.getenv(MATRIX_USER_ENV, None)
+    if env_val is not None:
+        return env_val
+
     config = _get_config()
     if config.get(MATRIX_USER_INDEX, None) is None:
         config[MATRIX_USER_INDEX] = input('User: ').strip()
@@ -48,6 +78,10 @@ def get_user():
 
 
 def get_password():
+    env_val = os.getenv(MATRIX_PASSWORD_ENV, None)
+    if env_val is not None:
+        return env_val
+
     config = _get_config()
     if config.get(MATRIX_PASSWORD_INDEX, None) is None:
         config[MATRIX_PASSWORD_INDEX] = getpass.getpass(prompt='Password: ')
@@ -58,6 +92,9 @@ def get_password():
 
 
 def get_bridge_endpoint():
+    env_val = os.getenv(PLAZA_BRIDGE_ENDPOINT_ENV, None)
+    if env_val is not None:
+        return env_val
 
     config = _get_config()
     if config.get(PLAZA_BRIDGE_ENDPOINT_INDEX, None) is None:
@@ -66,3 +103,4 @@ def get_bridge_endpoint():
             raise Exception('No bridge endpoint introduced')
         _save_config(config)
     return config[PLAZA_BRIDGE_ENDPOINT_INDEX]
+

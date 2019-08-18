@@ -1,3 +1,4 @@
+import traceback
 import logging
 from matrix_client.client import MatrixClient
 
@@ -23,11 +24,14 @@ class PlazaBot:
         self.rooms[room_id].send_text(message)
 
     def message(self, room, event):
-        logging.info("Room[{}] Event[{}]".format(room, event))
+        logging.debug("Room[{}] Event[{}]".format(room, event))
         if self.handler is None:
             return
 
-        self.handler.on_new_message(room, event)
+        try:
+            self.handler.on_new_message(room, event)
+        except:
+            logging.error(traceback.format_exc())
 
     def on_exception(self, exception):
         logging.error(repr(exception))
