@@ -24,7 +24,7 @@ class PlazaBot:
         self.rooms[room_id].send_text(message)
 
     def message(self, room, event):
-        logging.info("Room[{}] Event[{}]".format(room, event))
+        logging.debug("Room[{}] Event[{}]".format(room, event))
         if self.handler is None:
             return
 
