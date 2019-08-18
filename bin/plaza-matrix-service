@@ -50,13 +50,13 @@ bridge = PlazaBridge(
 on_new_message_event = bridge.events.on_new_message
 on_new_message_event.add_trigger_block(
     id="on_new_message",
-    message="When received any message. Set %1",
+    message="[M] When received any message. Set %1",
     arguments=[VariableBlockArgument()],
     save_to=BlockContext.ARGUMENTS[0],
 )
 on_new_message_event.add_trigger_block(
     id="on_command",
-    message="When received %1",
+    message="[M] When received %1",
     arguments=[BlockArgument(str, "!start")],
     expected_value=BlockContext.ARGUMENTS[0],
 )
@@ -118,8 +118,24 @@ def get_known_channels(extra_data):
 
 ## Operations
 @bridge.operation(
+    id="answer_message", message="[M] Respond %1", arguments=[BlockArgument(str, "Hello")]
+)
+def answer_message(message, extra_data):
+    if extra_data.last_monitor_value is None:
+        logging.error("Answer_message without previous call")
+        return
+
+    room_id = (
+        extra_data.last_monitor_value.get("room_id", None)
+    )
+
+    logging.info("OPERATION answer_message # room_id={}".format(room_id))
+    BOT.send(room_id, message)
+
+
+@bridge.operation(
     id="send_message",
-    message="On channel %1 say %2",
+    message="[M] On channel %1 say %2",
     arguments=[
         CallbackBlockArgument(str, get_known_channels),
         BlockArgument(str, "Hello"),
@@ -128,7 +144,6 @@ def get_known_channels(extra_data):
 def send_message(room_id, message, extra_data):
     logging.info("OPERATION send_message # room_id={}".format(room_id))
     BOT.send(room_id, message)
-
 
     
 if __name__ == "__main__":
