@@ -80,6 +80,11 @@ class BotHandler:
             MEMBERS[member.user_id].append(room)
 
     def on_new_message(self, room, event):
+        content = event.get('content', {})
+        if not content or not content.get('body', None):
+            logging.debug('CONTROL event: {}'.format(event))
+            return
+
         user = event['sender']
         if not STORAGE.is_matrix_user_registered(user):
             self._on_non_registered_event(user, room, event)
