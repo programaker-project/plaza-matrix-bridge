@@ -69,6 +69,7 @@ class BotHandler:
         self.bot = bot
 
     def joined_room(self, room):
+        room.update_room_name()
         logging.info("JOINED room_id={room}".format(room=room.room_id))
 
     def set_room_members(self, room, members):
