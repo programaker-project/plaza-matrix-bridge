@@ -86,7 +86,6 @@ class StorageEngine:
 
     def get_plaza_user_from_matrix(self, user_id):
         with self._connect_db() as conn:
-            plaza_id = self._get_or_add_plaza_user(conn, user_id)
             join = (sqlalchemy.join(models.PlazaUsers, models.PlazaUsersInMatrix,
                                     models.PlazaUsers.c.id
                                     == models.PlazaUsersInMatrix.c.plaza_id)
