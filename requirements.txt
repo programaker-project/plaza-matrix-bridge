@@ -4,5 +4,11 @@ plaza-bridge
 # Matrix
 matrix_client
 
+# SQLAlchemy
+SQLAlchemy
+
+# Postgres support
+psycopg2-binary
+
 # XDG
 xdg

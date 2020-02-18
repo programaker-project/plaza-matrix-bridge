@@ -2,7 +2,7 @@
 
 from plaza_matrix_service import PlazaBot
 from plaza_matrix_service import config
-from plaza_matrix_service.storage import sqlite_storage
+from plaza_matrix_service import storage
 import logging
 import sys
 
@@ -29,7 +29,7 @@ class Registerer(MessageBasedServiceRegistration):
                 .format(bot_addr=BOT_ADDRESS, user_id=extra_data.user_id))
 
 # Global objects
-STORAGE = sqlite_storage.get_default()
+STORAGE = storage.get_engine()
 
 MATRIX_INSTANCE = config.get_matrix_instance()
 MATRIX_USER = config.get_user()
@@ -107,7 +107,7 @@ class BotHandler:
             register_id = msg[len(prefix):]
             STORAGE.register_user(user, register_id)
             BOT.send(room.room_id, "Congrats, you're registered now!")
-    
+
 BOT.handler = BotHandler(BOT)
 
 
@@ -151,7 +151,7 @@ def send_message(room_id, message, extra_data):
     logging.info("OPERATION send_message # room_id={}".format(room_id))
     BOT.send(room_id, message)
 
-    
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format='%(levelname)-8s %(message)s')

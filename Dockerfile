@@ -2,9 +2,10 @@ FROM python:3-alpine
 
 # Note that everything is uninstalled later.
 ADD requirements.txt /requirements.txt
-RUN apk add --no-cache gcc libressl-dev musl-dev libffi-dev && \
+
+RUN apk add --no-cache libpq postgresql-dev git build-base libressl-dev libffi-dev && \
   pip install -U -r /requirements.txt && \
-  apk del            gcc libressl-dev musl-dev libffi-dev
+  apk del postgresql-dev git build-base libressl-dev libffi-dev
 
 ADD . /app
 RUN pip install -e /app
