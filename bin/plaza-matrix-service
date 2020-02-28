@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
-from plaza_matrix_service import PlazaBot
-from plaza_matrix_service import config
-from plaza_matrix_service import storage
+from plaza_matrix_service import (
+    PlazaBot,
+    config,
+    storage,
+    assets
+)
 import logging
 import sys
 
@@ -19,14 +22,31 @@ BOT_ADDRESS = config.get_matrix_bot_address()
 
 
 class Registerer(MessageBasedServiceRegistration):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, bridge, *args, **kwargs):
         MessageBasedServiceRegistration.__init__(self, *args, **kwargs)
+        self.bridge = bridge
+        self.connection_strings = {}
 
     def get_call_to_action_text(self, extra_data):
         if not extra_data:
             return 'Just greet {bot_addr}'.format(bot_addr=BOT_ADDRESS)
+
+        connection_id = extra_data.user_id
+        self.connection_strings[connection_id] = connection_id
+
         return ('Send the following to {bot_addr}<console>!register {user_id}</console>'
                 .format(bot_addr=BOT_ADDRESS, user_id=extra_data.user_id))
+
+
+    def perform_side_authentication(self, keyword, username):
+        if not keyword in self.connection_strings:
+            return False
+
+        connection_id = self.connection_strings[keyword]
+        del self.connection_strings[keyword]
+
+        self.bridge.establish_connection(connection_id, name=username)
+        return True
 
 # Global objects
 STORAGE = storage.get_engine()
@@ -41,22 +61,26 @@ BOT = PlazaBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
 bridge = PlazaBridge(
     name="Matrix.im",
     is_public=True,
-    registerer=Registerer(),
     events=['on_new_message'],
+    icon=assets.open_icon(),
     endpoint=BRIDGE_ENDPOINT,
+    allow_multiple_connections=False,
 )
+
+REGISTERER = Registerer(bridge=bridge)
+bridge.registerer = REGISTERER
 
 # Events
 on_new_message_event = bridge.events.on_new_message
 on_new_message_event.add_trigger_block(
     id="on_new_message",
-    message="[M] When received any message. Set %1",
+    message="When received any message. Set %1",
     arguments=[VariableBlockArgument()],
     save_to=BlockContext.ARGUMENTS[0],
 )
 on_new_message_event.add_trigger_block(
     id="on_command",
-    message="[M] When received %1",
+    message="When received %1",
     arguments=[BlockArgument(str, "!start")],
     expected_value=BlockContext.ARGUMENTS[0],
 )
@@ -81,32 +105,56 @@ class BotHandler:
             MEMBERS[member.user_id].append(room)
 
     def on_new_message(self, room, event):
+        user = event.get('sender', None)
+        if user.strip() == BOT_ADDRESS:
+            # Ignore events triggered by the bot itself
+            return
+
         content = event.get('content', {})
         if not content or not content.get('body', None):
             logging.debug('CONTROL event: {}'.format(event))
             return
 
-        user = event['sender']
+        if self._check_message_for_registration(event, room, user):
+            BOT.send(room.room_id,
+                     "Welcome! You're registered now!\n"
+                     "You can now use this bot in PrograMaker.",
+            )
+
         if not STORAGE.is_matrix_user_registered(user):
             self._on_non_registered_event(user, room, event)
         else:
-            on_new_message_event.send(
-                to_user=STORAGE.get_plaza_user_from_matrix(user),
-                content=event['content']['body'],
-                event=event,
-            )
-            self.last_message = (room, event)
+            for plaza_user in STORAGE.get_plaza_users_from_matrix(user):
+                on_new_message_event.send(
+                    to_user=plaza_user,
+                    content=event['content']['body'],
+                    event=event,
+                )
+
+
+    def _check_message_for_registration(self, event, room, user):
+        msg = event['content']['body'].strip()
+        prefix = '!register '
+        if msg.startswith(prefix):
+            register_id = msg[len(prefix):]
+            if REGISTERER.perform_side_authentication(register_id, user):
+                STORAGE.register_user(user, register_id)
+                return True
+        return False
 
     def _on_non_registered_event(self, user, room, event):
         if 'body' not in event['content']:
             return
 
-        msg = event['content']['body'].strip()
-        prefix = '!register '
-        if msg.startswith(prefix):
-            register_id = msg[len(prefix):]
-            STORAGE.register_user(user, register_id)
-            BOT.send(room.room_id, "Congrats, you're registered now!")
+        # # When a user is not registered, the bot does not respond.
+        # # This is opposed to Telegram bot operation.
+        # # The reason for this is that the bot doesn't know if it's being addressed.
+        # # In case that is implemented, this be enabled.
+        # BOT.send(room.room_id,
+        #          "Hi! I'm a bot you can program yourself!\n"
+        #          "Check PrograMaker.com for more information :)",
+        # )
+
 
 BOT.handler = BotHandler(BOT)
 
@@ -124,7 +172,7 @@ def get_known_channels(extra_data):
 
 ## Operations
 @bridge.operation(
-    id="answer_message", message="[M] Respond %1", arguments=[BlockArgument(str, "Hello")]
+    id="answer_message", message="Respond %1", arguments=[BlockArgument(str, "Hello")]
 )
 def answer_message(message, extra_data):
     if extra_data.last_monitor_value is None:
@@ -141,7 +189,7 @@ def answer_message(message, extra_data):
 
 @bridge.operation(
     id="send_message",
-    message="[M] On channel %1 say %2",
+    message="On channel %1 say %2",
     arguments=[
         CallbackBlockArgument(str, get_known_channels),
         BlockArgument(str, "Hello"),

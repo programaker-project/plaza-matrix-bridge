@@ -84,7 +84,7 @@ class StorageEngine:
             ).fetchone()
             return result is not None
 
-    def get_plaza_user_from_matrix(self, user_id):
+    def get_plaza_users_from_matrix(self, user_id):
         with self._connect_db() as conn:
             join = (sqlalchemy.join(models.PlazaUsers, models.PlazaUsersInMatrix,
                                     models.PlazaUsers.c.id
@@ -92,17 +92,15 @@ class StorageEngine:
                     .join(models.MatrixUsers,
                           models.PlazaUsersInMatrix.c.matrix_id == models.MatrixUsers.c.id))
 
-            result = conn.execute(
+            results = conn.execute(
                 sqlalchemy.select([
                     models.PlazaUsers.c.plaza_user_id,
                 ])
                 .select_from(join)
                 .where(models.MatrixUsers.c.matrix_user_id == user_id)
-            ).fetchone()
+            ).fetchall()
 
-            if result is None:
-                raise Exception('User (matrix: {}) not found'.format(user_id))
-            return result.plaza_user_id
+            return map(lambda result: result.plaza_user_id, results)
 
     def _get_or_add_matrix_user(self, conn, matrix_user):
         check = conn.execute(
