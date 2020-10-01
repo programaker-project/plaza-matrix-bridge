@@ -1,5 +1,6 @@
-import traceback
 import logging
+import traceback
+
 from matrix_client.client import MatrixClient
 
 
