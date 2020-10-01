@@ -221,3 +221,4 @@ if __name__ == "__main__":
     BOT.start()
     logging.info("Starting matrix bridge")
     bridge.run()
+    sys.exit(1)
