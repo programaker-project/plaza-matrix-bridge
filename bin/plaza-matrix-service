@@ -63,13 +63,13 @@ CHANNEL_COLLECTION = bridge.collections.channels
 on_new_message_event = bridge.events.on_new_message
 on_new_message_event.add_trigger_block(
     id="on_new_message",
-    message="When received any message. Set %1",
+    message="When I say something in any channel. Set %1",
     arguments=[VariableBlockArgument()],
     save_to=BlockContext.ARGUMENTS[0],
 )
 on_new_message_event.add_trigger_block(
     id="on_command",
-    message="When received %1",
+    message="When I say %1 on any channel",
     arguments=[BlockArgument(str, "!start")],
     expected_value=BlockContext.ARGUMENTS[0],
 )
@@ -77,12 +77,13 @@ on_new_message_event.add_trigger_block(
 on_new_message_from_channel_event = bridge.events.on_new_message_from_channel
 on_new_message_from_channel_event.add_trigger_block(
     id="on_new_message_from_channel",
-    message="When received any message on %1. Set %2",
+    message="On message on %1. Set %2",
     arguments=[
         CollectionBlockArgument(CHANNEL_COLLECTION),
         VariableBlockArgument()
     ],
-    save_to=BlockContext.ARGUMENTS[0],
+    subkey=BlockContext.ARGUMENTS[0],
+    save_to=BlockContext.ARGUMENTS[1],
 )
 on_new_message_from_channel_event.add_trigger_block(
     id="on_command_from_channel",
@@ -92,6 +93,7 @@ on_new_message_from_channel_event.add_trigger_block(
         CollectionBlockArgument(CHANNEL_COLLECTION)
     ],
     expected_value=BlockContext.ARGUMENTS[0],
+    subkey=BlockContext.ARGUMENTS[1],
 )
 
 ## Matrix bot handler functions
