@@ -144,6 +144,12 @@ class BotHandler:
                     content=event['content']['body'],
                     event=event,
                 )
+                on_new_message_from_channel_event.send(
+                    to_user=plaza_user,
+                    content=event['content']['body'],
+                    event=event,
+                    subkey=room.room_id,
+                )
 
 
     def _check_message_for_registration(self, event, room, user):
