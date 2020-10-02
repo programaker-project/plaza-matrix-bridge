@@ -1,22 +1,12 @@
 #!/usr/bin/env python3
 
-from plaza_matrix_service import (
-    PlazaBot,
-    config,
-    storage,
-    assets
-)
 import logging
 import sys
 
-from plaza_bridge import (
-    PlazaBridge,
-    MessageBasedServiceRegistration,
-    BlockContext,
-    BlockArgument,
-    CallbackBlockArgument,
-    VariableBlockArgument,
-)
+from plaza_bridge import (BlockArgument, BlockContext, CollectionBlockArgument,
+                          MessageBasedServiceRegistration, PlazaBridge,
+                          VariableBlockArgument)
+from plaza_matrix_service import PlazaBot, assets, config, storage
 
 BOT_ADDRESS = config.get_matrix_bot_address()
 
@@ -33,13 +23,12 @@ class Registerer(MessageBasedServiceRegistration):
 
         connection_id = extra_data.user_id
         self.connection_strings[connection_id] = connection_id
-
-        return ('Send the following to {bot_addr}<console>!register {user_id}</console>'
-                .format(bot_addr=BOT_ADDRESS, user_id=extra_data.user_id))
-
+        return (
+            'Send the following to {bot_addr}<console>!register {user_id}</console>'
+            .format(bot_addr=BOT_ADDRESS, user_id=extra_data.user_id))
 
     def perform_side_authentication(self, keyword, username):
-        if not keyword in self.connection_strings:
+        if keyword not in self.connection_strings:
             return False
 
         connection_id = self.connection_strings[keyword]
@@ -58,36 +47,60 @@ BRIDGE_ENDPOINT = config.get_bridge_endpoint()
 
 BOT = PlazaBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
 
-bridge = PlazaBridge(
-    name="Matrix.im",
-    is_public=True,
-    events=['on_new_message'],
-    icon=assets.open_icon(),
-    endpoint=BRIDGE_ENDPOINT,
-    allow_multiple_connections=False,
-)
+bridge = PlazaBridge(name="Matrix.im",
+                     is_public=False,
+                     events=['on_new_message', 'on_new_message_from_channel'],
+                     collections=['channels'],
+                     icon=assets.open_icon(),
+                     endpoint=BRIDGE_ENDPOINT,
+                     allow_multiple_connections=False)
 
 REGISTERER = Registerer(bridge=bridge)
 bridge.registerer = REGISTERER
 
 # Events
+CHANNEL_COLLECTION = bridge.collections.channels
 on_new_message_event = bridge.events.on_new_message
 on_new_message_event.add_trigger_block(
     id="on_new_message",
-    message="When received any message. Set %1",
+    message="When I say something in any channel. Set %1",
     arguments=[VariableBlockArgument()],
     save_to=BlockContext.ARGUMENTS[0],
 )
 on_new_message_event.add_trigger_block(
     id="on_command",
-    message="When received %1",
+    message="When I say %1 on any channel",
     arguments=[BlockArgument(str, "!start")],
     expected_value=BlockContext.ARGUMENTS[0],
+)
+
+on_new_message_from_channel_event = bridge.events.on_new_message_from_channel
+on_new_message_from_channel_event.add_trigger_block(
+    id="on_new_message_from_channel",
+    message="On message on %1. Set %2",
+    arguments=[
+        CollectionBlockArgument(CHANNEL_COLLECTION),
+        VariableBlockArgument()
+    ],
+    subkey=BlockContext.ARGUMENTS[0],
+    save_to=BlockContext.ARGUMENTS[1],
+)
+on_new_message_from_channel_event.add_trigger_block(
+    id="on_command_from_channel",
+    message="When received %1 on %2",
+    arguments=[
+        BlockArgument(str, "!start"),
+        CollectionBlockArgument(CHANNEL_COLLECTION)
+    ],
+    expected_value=BlockContext.ARGUMENTS[0],
+    subkey=BlockContext.ARGUMENTS[1],
 )
 
 ## Matrix bot handler functions
 ROOMS = {}
 MEMBERS = {}
+
+
 class BotHandler:
     def __init__(self, bot):
         self.bot = bot
@@ -116,9 +129,10 @@ class BotHandler:
             return
 
         if self._check_message_for_registration(event, room, user):
-            BOT.send(room.room_id,
-                     "Welcome! You're registered now!\n"
-                     "You can now use this bot in PrograMaker.",
+            BOT.send(
+                room.room_id,
+                "Welcome! You're registered now!\n"
+                "You can now use this bot in PrograMaker.",
             )
 
         if not STORAGE.is_matrix_user_registered(user):
@@ -129,6 +143,12 @@ class BotHandler:
                     to_user=plaza_user,
                     content=event['content']['body'],
                     event=event,
+                )
+                on_new_message_from_channel_event.send(
+                    to_user=plaza_user,
+                    content=event['content']['body'],
+                    event=event,
+                    subkey=room.room_id,
                 )
 
 
@@ -159,29 +179,28 @@ class BotHandler:
 BOT.handler = BotHandler(BOT)
 
 
-## Callbacks
-@bridge.callback
-def get_known_channels(extra_data):
-    logging.info("CALLBACK get_known_channels # user_id={}".format(extra_data.user_id))
+@CHANNEL_COLLECTION.getter
+def get_channels_for_user(user_id, extra_data):
+    logging.info(
+        "Get collection get_known_channels # user_id={}".format(user_id))
     results = {}
-    for user in STORAGE.get_matrix_users(extra_data.user_id):
+    for user in STORAGE.get_matrix_users(user_id):
         for room in MEMBERS[user]:
             results[room.room_id] = {"name": room.display_name}
 
     return results
 
+
 ## Operations
-@bridge.operation(
-    id="answer_message", message="Respond %1", arguments=[BlockArgument(str, "Hello")]
-)
+@bridge.operation(id="answer_message",
+                  message="Respond %1",
+                  arguments=[BlockArgument(str, "Hello")])
 def answer_message(message, extra_data):
     if extra_data.last_monitor_value is None:
         logging.error("Answer_message without previous call")
         return
 
-    room_id = (
-        extra_data.last_monitor_value.get("room_id", None)
-    )
+    room_id = (extra_data.last_monitor_value.get("room_id", None))
 
     logging.info("OPERATION answer_message # room_id={}".format(room_id))
     BOT.send(room_id, message)
@@ -191,7 +210,7 @@ def answer_message(message, extra_data):
     id="send_message",
     message="On channel %1 say %2",
     arguments=[
-        CallbackBlockArgument(str, get_known_channels),
+        CollectionBlockArgument(CHANNEL_COLLECTION),
         BlockArgument(str, "Hello"),
     ],
 )
@@ -208,3 +227,4 @@ if __name__ == "__main__":
     BOT.start()
     logging.info("Starting matrix bridge")
     bridge.run()
+    sys.exit(1)
