@@ -8,13 +8,14 @@ MATRIX_BOT_ADDRESS_INDEX = 'matrix_bot_address'
 MATRIX_USER_INDEX = 'matrix_user'
 MATRIX_PASSWORD_INDEX = 'matrix_password'
 PLAZA_BRIDGE_ENDPOINT_INDEX = 'plaza_bridge_endpoint'
+PLAZA_AUTH_TOKEN_INDEX = 'plaza_authentication_token'
 
 MATRIX_INSTANCE_ENV = 'MATRIX_INSTANCE'
 MATRIX_BOT_ADDRESS_ENV = 'MATRIX_BOT_ADDRESS'
 MATRIX_USER_ENV = 'MATRIX_USER'
 MATRIX_PASSWORD_ENV = 'MATRIX_PASSWORD'
 PLAZA_BRIDGE_ENDPOINT_ENV = 'PLAZA_BRIDGE_ENDPOINT'
-
+PLAZA_AUTH_TOKEN_ENV = 'PLAZA_BRIDGE_AUTH_TOKEN'
 
 global directory, config_file
 directory = os.path.join(XDG_CONFIG_HOME, 'plaza', 'bridges', 'matrix')
@@ -33,7 +34,7 @@ def _save_config(config):
     with open(config_file, 'wt') as f:
         return json.dump(config, f)
 
-    
+
 def get_matrix_instance():
     env_val = os.getenv(MATRIX_INSTANCE_ENV, None)
     if env_val is not None:
@@ -104,3 +105,16 @@ def get_bridge_endpoint():
         _save_config(config)
     return config[PLAZA_BRIDGE_ENDPOINT_INDEX]
 
+
+def get_auth_token():
+    env_val = os.getenv(PLAZA_AUTH_TOKEN_ENV, None)
+    if env_val is not None:
+        return env_val
+
+    config = _get_config()
+    if config.get(PLAZA_AUTH_TOKEN_INDEX, None) is None:
+        config[PLAZA_AUTH_TOKEN_INDEX] = input('Plaza authentication TOKEN: ')
+        if not config[PLAZA_AUTH_TOKEN_INDEX]:
+            raise Exception('No authentication token introduced')
+        _save_config(config)
+    return config[PLAZA_AUTH_TOKEN_INDEX]

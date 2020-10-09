@@ -44,6 +44,7 @@ MATRIX_INSTANCE = config.get_matrix_instance()
 MATRIX_USER = config.get_user()
 MATRIX_PASSWORD = config.get_password()
 BRIDGE_ENDPOINT = config.get_bridge_endpoint()
+AUTH_TOKEN = config.get_auth_token()
 
 BOT = PlazaBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
 
@@ -53,6 +54,7 @@ bridge = PlazaBridge(name="Matrix.im",
                      collections=['channels'],
                      icon=assets.open_icon(),
                      endpoint=BRIDGE_ENDPOINT,
+                     token=AUTH_TOKEN,
                      allow_multiple_connections=False)
 
 REGISTERER = Registerer(bridge=bridge)
@@ -203,7 +205,7 @@ def answer_message(message, extra_data):
     room_id = (extra_data.last_monitor_value.get("room_id", None))
 
     logging.info("OPERATION answer_message # room_id={}".format(room_id))
-    BOT.send(room_id, message)
+    BOT.send(room_id, str(message))
 
 
 @bridge.operation(
@@ -216,7 +218,7 @@ def answer_message(message, extra_data):
 )
 def send_message(room_id, message, extra_data):
     logging.info("OPERATION send_message # room_id={}".format(room_id))
-    BOT.send(room_id, message)
+    BOT.send(room_id, str(message))
 
 
 if __name__ == "__main__":
