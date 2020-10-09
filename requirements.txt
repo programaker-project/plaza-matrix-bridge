@@ -1,5 +1,5 @@
-# Plaza
-plaza-bridge
+# Programaker
+programaker_bridge
 
 # Matrix
 matrix_client

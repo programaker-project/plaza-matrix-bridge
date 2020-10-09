@@ -44,6 +44,7 @@ MATRIX_INSTANCE = config.get_matrix_instance()
 MATRIX_USER = config.get_user()
 MATRIX_PASSWORD = config.get_password()
 BRIDGE_ENDPOINT = config.get_bridge_endpoint()
+AUTH_TOKEN = config.get_auth_token()
 
 BOT = PlazaBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
 
@@ -53,6 +54,7 @@ bridge = PlazaBridge(name="Matrix.im",
                      collections=['channels'],
                      icon=assets.open_icon(),
                      endpoint=BRIDGE_ENDPOINT,
+                     token=AUTH_TOKEN,
                      allow_multiple_connections=False)
 
 REGISTERER = Registerer(bridge=bridge)
