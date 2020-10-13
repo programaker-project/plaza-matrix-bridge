@@ -1,7 +1,7 @@
 image: docker:latest
 
 variables:
-  DOCKER_IMAGE: plaza-matrix-bridge
+  DOCKER_IMAGE: programaker-matrix-bridge
 
 services:
   - docker:dind

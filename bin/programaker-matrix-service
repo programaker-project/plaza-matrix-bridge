@@ -4,10 +4,10 @@ import os
 import logging
 import sys
 
-from plaza_bridge import (BlockArgument, BlockContext, CollectionBlockArgument,
-                          MessageBasedServiceRegistration, PlazaBridge,
+from programaker_bridge import (BlockArgument, BlockContext, CollectionBlockArgument,
+                          MessageBasedServiceRegistration, ProgramakerBridge,
                           VariableBlockArgument)
-from plaza_matrix_service import PlazaBot, assets, config, storage
+from programaker_matrix_service import ProgramakerBot, assets, config, storage
 
 BOT_ADDRESS = config.get_matrix_bot_address()
 
@@ -48,16 +48,16 @@ MATRIX_PASSWORD = config.get_password()
 BRIDGE_ENDPOINT = config.get_bridge_endpoint()
 AUTH_TOKEN = config.get_auth_token()
 
-BOT = PlazaBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
+BOT = ProgramakerBot(MATRIX_USER, MATRIX_PASSWORD, MATRIX_INSTANCE)
 
-bridge = PlazaBridge(name="Matrix.im",
-                     is_public=IS_PUBLIC,
-                     events=['on_new_message', 'on_new_message_from_channel'],
-                     collections=['channels'],
-                     icon=assets.open_icon(),
-                     endpoint=BRIDGE_ENDPOINT,
-                     token=AUTH_TOKEN,
-                     allow_multiple_connections=False)
+bridge = ProgramakerBridge(name="Matrix.im",
+                           is_public=IS_PUBLIC,
+                           events=['on_new_message', 'on_new_message_from_channel'],
+                           collections=['channels'],
+                           icon=assets.open_icon(),
+                           endpoint=BRIDGE_ENDPOINT,
+                           token=AUTH_TOKEN,
+                           allow_multiple_connections=False)
 
 REGISTERER = Registerer(bridge=bridge)
 bridge.registerer = REGISTERER
@@ -142,14 +142,14 @@ class BotHandler:
         if not STORAGE.is_matrix_user_registered(user):
             self._on_non_registered_event(user, room, event)
         else:
-            for plaza_user in STORAGE.get_plaza_users_from_matrix(user):
+            for programaker_user in STORAGE.get_programaker_users_from_matrix(user):
                 on_new_message_event.send(
-                    to_user=plaza_user,
+                    to_user=programaker_user,
                     content=event['content']['body'],
                     event=event,
                 )
                 on_new_message_from_channel_event.send(
-                    to_user=plaza_user,
+                    to_user=programaker_user,
                     content=event['content']['body'],
                     event=event,
                     subkey=room.room_id,

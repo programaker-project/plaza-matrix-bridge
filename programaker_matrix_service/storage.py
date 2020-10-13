@@ -34,29 +34,29 @@ class StorageEngine:
     def _connect_db(self):
         return EngineContext(self.engine)
 
-    def register_user(self, matrix_user, plaza_user):
+    def register_user(self, matrix_user, programaker_user):
         with self._connect_db() as conn:
             matrix_id = self._get_or_add_matrix_user(conn, matrix_user)
-            plaza_id = self._get_or_add_plaza_user(conn, plaza_user)
+            programaker_id = self._get_or_add_programaker_user(conn, programaker_user)
 
             check = conn.execute(
                 sqlalchemy.select([models.PlazaUsersInMatrix.c.plaza_id])
                 .where(
                     sqlalchemy.and_(
-                        models.PlazaUsersInMatrix.c.plaza_id == plaza_id,
+                        models.PlazaUsersInMatrix.c.plaza_id == programaker_id,
                         models.PlazaUsersInMatrix.c.matrix_id == matrix_id))
             ).fetchone()
 
             if check is not None:
                 return
 
-            insert = models.PlazaUsersInMatrix.insert().values(plaza_id=plaza_id,
+            insert = models.PlazaUsersInMatrix.insert().values(plaza_id=programaker_id,
                                                                matrix_id=matrix_id)
             conn.execute(insert)
 
-    def get_matrix_users(self, plaza_user):
+    def get_matrix_users(self, programaker_user):
         with self._connect_db() as conn:
-            plaza_id = self._get_or_add_plaza_user(conn, plaza_user)
+            programaker_id = self._get_or_add_programaker_user(conn, programaker_user)
             join = sqlalchemy.join(models.MatrixUsers, models.PlazaUsersInMatrix,
                                    models.MatrixUsers.c.id
                                    == models.PlazaUsersInMatrix.c.matrix_id)
@@ -66,7 +66,7 @@ class StorageEngine:
                     models.MatrixUsers.c.matrix_user_id,
                 ])
                 .select_from(join)
-                .where(models.PlazaUsersInMatrix.c.plaza_id == plaza_id)
+                .where(models.PlazaUsersInMatrix.c.plaza_id == programaker_id)
             ).fetchall()
 
             return [
@@ -84,7 +84,7 @@ class StorageEngine:
             ).fetchone()
             return result is not None
 
-    def get_plaza_users_from_matrix(self, user_id):
+    def get_programaker_users_from_matrix(self, user_id):
         with self._connect_db() as conn:
             join = (sqlalchemy.join(models.PlazaUsers, models.PlazaUsersInMatrix,
                                     models.PlazaUsers.c.id
@@ -115,16 +115,16 @@ class StorageEngine:
         result = conn.execute(insert)
         return result.inserted_primary_key[0]
 
-    def _get_or_add_plaza_user(self, conn, plaza_user):
+    def _get_or_add_programaker_user(self, conn, programaker_user):
         check = conn.execute(
             sqlalchemy.select([models.PlazaUsers.c.id])
-            .where(models.PlazaUsers.c.plaza_user_id == plaza_user)
+            .where(models.PlazaUsers.c.plaza_user_id == programaker_user)
         ).fetchone()
 
         if check is not None:
             return check.id
 
-        insert = models.PlazaUsers.insert().values(plaza_user_id=plaza_user)
+        insert = models.PlazaUsers.insert().values(plaza_user_id=programaker_user)
         result = conn.execute(insert)
         return result.inserted_primary_key[0]
 
