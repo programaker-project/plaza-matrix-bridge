@@ -13,4 +13,4 @@ RUN pip install -e /app
 # Bridge database (registrations, chatrooms, ...)
 VOLUME /root/.local/share/plaza/bridges/matrix/db.sqlite
 
-CMD plaza-matrix-service
+CMD programaker-matrix-service

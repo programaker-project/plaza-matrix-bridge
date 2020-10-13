@@ -4,7 +4,7 @@ import traceback
 from matrix_client.client import MatrixClient
 
 
-class PlazaBot:
+class ProgramakerBot:
 
     def __init__(self, user, password, instance):
         self.on_message = None
