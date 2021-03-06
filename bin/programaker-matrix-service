@@ -68,7 +68,7 @@ on_new_message_event = bridge.events.on_new_message
 on_new_message_event.add_trigger_block(
     id="on_new_message",
     message="When I say something in any channel. Set %1",
-    arguments=[VariableBlockArgument()],
+    arguments=[VariableBlockArgument(str)],
     save_to=BlockContext.ARGUMENTS[0],
 )
 on_new_message_event.add_trigger_block(
@@ -84,7 +84,7 @@ on_new_message_from_channel_event.add_trigger_block(
     message="On message on %1. Set %2",
     arguments=[
         CollectionBlockArgument(CHANNEL_COLLECTION),
-        VariableBlockArgument()
+        VariableBlockArgument(str),
     ],
     subkey=BlockContext.ARGUMENTS[0],
     save_to=BlockContext.ARGUMENTS[1],
@@ -94,7 +94,7 @@ on_new_message_from_channel_event.add_trigger_block(
     message="When received %1 on %2",
     arguments=[
         BlockArgument(str, "!start"),
-        CollectionBlockArgument(CHANNEL_COLLECTION)
+        CollectionBlockArgument(CHANNEL_COLLECTION),
     ],
     expected_value=BlockContext.ARGUMENTS[0],
     subkey=BlockContext.ARGUMENTS[1],
